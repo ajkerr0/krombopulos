@@ -1,38 +1,41 @@
 """
 
-
+@author: Alex Kerr
 """
 
 import numpy as np
 import matplotlib.pyplot as plt
 
-import ballnspring
-
 class Evolution:
-    """A genetic algorithm class, using binary strings as individuals.
+    """A genetic algorithm class that allows for multiple data types to be encoded.  The result
+    is effectively multiple chromosomes being associated with a single individual in the population.
     
-    Arguments:
-        isize (int): Size of the individual strings.
-        psize (int): Size of the population.
-        fitfunc (function): Fitness function; returns high values for high fitness.
+    Parameters:
+    
+        isize (int or sequence of ints):
+            Size of each of the individuals chromosomes.
+        psize (int): 
+            Size of the population.
+        fitfunc (function): 
+            Fitness function that returns high values for high fitness.  Must be callable with
+              sequences of the specified sizes in isize as parameters.
     
     Keywords:
-        abet (int): Size of the alphabet i.e. how many possible integers in a chromosome.
-        nepoch (int): Number of epochs in the calculation.
-        nelite (int): Number of chromosomes preserved from the previous generation during elitism.
-        tour (bool): When True, apply tournament rules."""
     
-    def __init__(self, isize, psize, fitfunc, abet=2, nepoch=50, nelite=3, tour=True):
+        nepoch (int): 
+            Number of epochs in the algorithm.
+        nelite (int): 
+            Number of chromosomes preserved from the previous generation during elitism."""
+    
+    def __init__(self, isize, psize, fitfunc, abet=2, nepoch=50, nelite=3):
         self.fitfunc = fitfunc
         self.abet = abet
         self.nepoch = nepoch
         self.nelite = nelite
-        self.tour = tour
         if psize%2 == 1:
             psize += 1
         self.pop = np.random.randint(0,abet,(psize,isize))
         self.mrate = 1/isize
-#        print(self.pop)
         
     @staticmethod
     def select_parents(pop, fitness):
@@ -206,193 +209,3 @@ def fourpeaks(pop, T=.15):
             fitness[i] = np.maximum(consec0, consec1)
             
     return fitness
-    
-def transmission_mass(pop, center=5, centermass=1.5, stiffval=20.):
-    """Return the thermal conductivities of the chains with 
-    with individuals as the leading strands."""
-    
-    slen = pop.shape[1]
-    
-    #determine masses and spring constants
-    #start with center
-    stiff = [[i,i+1] for i in range(center-1)]
-    loose = [[i-1,i] for i in range(center, slen + center)]
-    loose.append([0, center+slen])
-    loose.extend([[i,i+1] for i in range(slen + center, 2*slen + center - 1)])
-    
-    size = center + 2*slen
-    k = np.zeros((size,size))
-    looseval = 5.
-    for i,j in stiff:
-        k[i,i] += stiffval
-        k[j,j] += stiffval
-        k[i,j] = -stiffval
-        k[j,i] = -stiffval
-    for i,j in loose:
-        k[i,i] += looseval
-        k[j,j] += looseval
-        k[i,j] = -looseval
-        k[j,i] = -looseval
-        
-    drivers = [[slen + center - 1],[2*slen + center - 1]]
-    crossings = [[center+slen,0],[center-1, center]]
-    
-    centermass = [centermass]*center
-    
-    fitness = np.zeros(pop.shape[0])
-    
-    for i in range(pop.shape[0]):
-        
-        mass = centermass + list(pop[i] + 1) + list(pop[i][::-1] + 1)
-        
-        fitness[i] = abs(ballnspring.kappa(mass, k, drivers, crossings, gamma=1.))
-        
-    return fitness
-    
-def spring_constant(segments):
-    """Return the spring constant as a function of the segment of the chromotid"""
-    return segments + 1.
-    
-def transmission_mass_and_spring_even(pop, center=5, centermass=1.5, stiffval=20.):
-    """Return the fitness of the population of individuals with variable
-    mass AND spring strength."""
-    
-    #check for valid input
-    if pop.shape[1]%2 != 0:
-        raise ValueError("Invalid input to fitness function, should be same number of variable springs as \
-                          there are masses")
-                          
-    slen = pop.shape[1]//2
-    
-    #determine masses and spring constants from chromosomes
-    #start with center
-    stiff = [[i,i+1] for i in range(center-1)]
-    loose = [[i-1,i] for i in range(center, slen + center)]
-    loose.append([0, center+slen])
-    loose.extend([[i,i+1] for i in range(slen + center, 2*slen + center - 1)])
-    loosevals = spring_constant(np.tile(pop[:,slen:], (1,2)))
-    
-    size = center + 2*slen
-        
-    drivers = [[slen + center - 1],[2*slen + center - 1]]
-    crossings = [[center+slen,0],[center-1, center]]
-#    crossings = [[0,center+slen],[center, center-1]]
-    
-    centermass = [centermass]*center
-    
-    fitness = np.zeros(pop.shape[0])
-    
-    for m in range(pop.shape[0]):
-        
-        mass = centermass + list(pop[m,:slen] + 1) + list(pop[m,:slen][::-1] + 1)
-        
-        k = np.zeros((size,size))
-        for i,j in stiff:
-            k[i,i] += stiffval
-            k[j,j] += stiffval
-            k[i,j] = -stiffval
-            k[j,i] = -stiffval
-            
-        for lindices, lval in zip(loose, loosevals[m]):
-            i,j = lindices
-            k[i,i] += lval
-            k[j,j] += lval
-            k[i,j] = -lval
-            k[j,i] = -lval
-
-        fitness[m] = abs(ballnspring.kappa(mass, k, drivers, crossings, gamma=1.))
-        
-    return fitness
-    
-def transmission_mass_and_spring_odd(pop, center=5, centermass=1.5, endmass=.1, stiffval=20.):
-    """Return the fitness of the population of individuals with variable
-    mass AND spring strength."""
-    
-    #check for valid input
-    if pop.shape[1]%2 == 0:
-        raise ValueError("Invalid input to fitness function, should be one more spring than there \
-                          variable masses.")
-                          
-    slen = (pop.shape[1]-1)//2
-    
-    #determine masses and spring constants from chromosomes
-    #start with center
-    stiff = [[i,i+1] for i in range(center-1)]
-    loose = [[i-1,i] for i in range(center, slen + center)]
-    loose.append([slen + center-1, 2*slen + center])
-    loose.append([0, center+slen])
-    loose.extend([[i,i+1] for i in range(slen + center, 2*slen + center - 1)])
-    loose.append([2*slen+center-1, 2*slen + center+1])
-#    loose.extend([[slen + center-1, 2*slen + center],[2*slen+center-1, 2*slen + center+1]])
-    loosevals = spring_constant(np.tile(pop[:,slen:], (1,2)))
-    
-    size = center + 2*slen + 2
-        
-    drivers = [[slen + center - 1],[2*slen + center - 1]]
-    crossings = [[center+slen,0],[center-1, center]]
-#    crossings = [[0,center+slen],[center, center-1]]
-    
-#    print(stiff)
-#    print(loose)
-#    print(loosevals)
-    
-    centermass = [centermass]*center
-    
-    fitness = np.zeros(pop.shape[0])
-    
-    for m in range(pop.shape[0]):
-        
-        mass = centermass + list(pop[m,:slen] + 1.) + list(pop[m,:slen][::-1] + 1.) + [endmass]*2
-        
-        k = np.zeros((size,size))
-        for i,j in stiff:
-            k[i,i] += stiffval
-            k[j,j] += stiffval
-            k[i,j] = -stiffval
-            k[j,i] = -stiffval
-            
-        for lindices, lval in zip(loose, loosevals[m]):
-            i,j = lindices
-            k[i,i] += lval
-            k[j,j] += lval
-            k[i,j] = -lval
-            k[j,i] = -lval
-            
-#        print(mass)
-#        print(k)
-
-        fitness[m] = abs(ballnspring.kappa(mass, k, drivers, crossings, gamma=1.))
-        
-    return fitness
-    
-isize = 11
-psize = 20
-
-#a = Evolution(4, 20, transmission_mass, nepoch=1, abet=2)
-#a = Evo2(isize, psize, transmission_mass_and_spring_even, isize//2, nepoch=10, abet=20)
-a = Evo2(isize, psize, transmission_mass_and_spring_odd, (isize-1)//2, nepoch=100, abet=10)
-a.evolve()
-
-best = np.array([0, 1, 1, 1, 0, 9, 9, 7, 7, 5, 8,])
-
-def bar_plot(fittest, title, x, y):
-    """Plot a bar graph showing the distributions of the inputs."""
-    
-    fittest = fittest + 1.
-    ind = np.arange(fittest.shape[0])
-    width = .35
-    
-    fig,ax = plt.subplots()
-    rects = ax.bar(ind + width, fittest, width, color='r')
-    
-    ax.set_ylabel(y, fontsize=16)
-    ax.set_xlabel(x, fontsize=16)
-    ax.set_title(title, fontsize=20)
-    ax.set_xticks(ind + width*1.5)
-    ax.set_yticks(np.arange(np.max(fittest)+2)+1)
-    ax.set_xticklabels(('1', '2', '3', '4', '5', '6'))
-    
-    plt.show()
-    
-bar_plot(best[:5], "Mass distribution of fittest side chain", "Mass Number", "Mass Value (mass units)")
-bar_plot(best[5:], "Spring distribution of fittest side chain", "Spring Number", "Spring constant (spring units)")
