@@ -27,14 +27,14 @@ class Evolution:
         nelite (int): 
             Number of chromosomes preserved from the previous generation during elitism."""
     
-    def __init__(self, isize, psize, fitfunc, abet=2, nepoch=50, nelite=3):
+    def __init__(self, isize, psize, fitfunc, nepoch=100, nelite=2, dtypes=None, maxb=None):
+        self.isize = np.asarray(isize)
         self.fitfunc = fitfunc
-        self.abet = abet
         self.nepoch = nepoch
         self.nelite = nelite
         if psize%2 == 1:
             psize += 1
-        self.pop = np.random.randint(0,abet,(psize,isize))
+        self.pop = [np.random.randint(0,max_,(psize,i)) for max_, i in zip(maxb, self.isize)]
         self.mrate = 1/isize
         
     @staticmethod
