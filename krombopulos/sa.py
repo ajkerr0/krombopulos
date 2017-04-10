@@ -21,14 +21,14 @@ def anneal(s0, neighbor, e, n, start_temp, p="boltzmann", schedule="linear"):
     Keywords:
     
         p (str):
-            Transition probability function.  Defaults to 'boltzmann'.
+            Acceptance probability function.  Defaults to 'boltzmann'.
         schedule (str):
             Annealing schedule.  Defaults to linear."""
             
     if p.lower() == "boltzmann":
         p = prob_boltzmann
     else:
-        raise ValueError("Invalid transition probability function")
+        raise ValueError("Invalid acceptance probability function")
     if schedule.lower() == "linear":
         schedule = sch_linear(start_temp)
     else:
@@ -37,7 +37,7 @@ def anneal(s0, neighbor, e, n, start_temp, p="boltzmann", schedule="linear"):
     e0 = e(s0)
     sbest = s0
     ebest = e0
-    sList, eList = [s0], [e0]  
+    sList, eList = [s0], [e0]
     
     for i in range(n-1):
         
