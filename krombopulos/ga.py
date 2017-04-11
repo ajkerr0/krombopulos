@@ -1,41 +1,46 @@
-"""
-
-@author: Alex Kerr
-"""
 
 import numpy as np
 import matplotlib.pyplot as plt
 
-class Evolution:
-    """A genetic algorithm class that allows for multiple data types to be encoded.  The result
-    is effectively multiple chromosomes being associated with a single individual in the population.
+class GA1:
+    """A genetic algorithm with one chromosome type.
     
     Parameters:
     
-        isize (int or sequence of ints):
+        isize (int):
             Size of each of the individuals chromosomes.
         psize (int): 
             Size of the population.
         fitfunc (function): 
             Fitness function that returns high values for high fitness.  Must be callable with
-              sequences of the specified sizes in isize as parameters.
+              sequences of length isize as the parameter.
     
     Keywords:
     
+        ndigit (int):
+            Number of digits accessible in a chromosome.  Defaults to 2 for binary strings.
         nepoch (int): 
-            Number of epochs in the algorithm.
+            Number of epochs in the algorithm.  Defaults to 100.
         nelite (int): 
-            Number of chromosomes preserved from the previous generation during elitism."""
+            Number of chromosomes preserved from the previous generation during elitism.
+            Defaults to 2.
+        mrate (float):
+            Fraction of n-bits that mutate, on average.  Defaults to 'None" which means the mutation
+              rate flips one n-bit per chromosome on average."""
     
-    def __init__(self, isize, psize, fitfunc, nepoch=100, nelite=2, dtypes=None, maxb=None):
-        self.isize = np.asarray(isize)
+    def __init__(self, isize, psize, fitfunc, ndigit=2, nepoch=100, nelite=2, mrate=None):
+        self.isize = isize
         self.fitfunc = fitfunc
         self.nepoch = nepoch
         self.nelite = nelite
+        self.ndigit = ndigit
         if psize%2 == 1:
             psize += 1
-        self.pop = [np.random.randint(0,max_,(psize,i)) for max_, i in zip(maxb, self.isize)]
-        self.mrate = 1/isize
+        self.pop = np.random.randint(0,ndigit,(psize,isize))
+        if mrate is None:
+            self.mrate = 1/isize
+        else:
+            self.mrate = mrate
         
     @staticmethod
     def select_parents(pop, fitness):
@@ -80,11 +85,12 @@ class Evolution:
         return newpop
         
     def mutate(self, pop):
-        """Return mutated population"""
+        """Return mutated population.  There is a chance to mutate back
+        to the original digit."""
         
         whereMu = np.random.rand(pop.shape[0], pop.shape[1])
-#        pop[np.where(whereMu < self.mrate)] = 1 - pop[np.where(whereMu < self.mrate)]
-        pop[np.where(whereMu < self.mrate)] = np.random.randint(0, self.abet, pop[np.where(whereMu < self.mrate)].shape)
+        muPop = np.where(whereMu < self.mrate)
+        pop[muPop] = np.random.randint(0, self.ndigit, pop[muPop].shape)
         return pop
      
     def elitism(self, newpop, fitness):
@@ -97,13 +103,7 @@ class Evolution:
         np.random.shuffle(indices)
         newpop = newpop[indices]
         newpop[:self.nelite] = best
-        return newpop
-        
-    def tournament(self, newpop, fitness):
-        """Return the results of a tournament between the new generation and
-        its preceeding one."""
-        return newpop
-        
+        return newpop        
         
     def evolve(self):
         """Run the genetic algorithm"""
@@ -125,8 +125,6 @@ class Evolution:
             #apply elitism and host tournaments
             if self.nelite > 0:
                 newpop = self.elitism(newpop, fitness)
-            if self.tour:
-                newpop = self.tournament(newpop, fitness)
                 
             self.pop = newpop
             bestfit[i] = np.max(fitness)
@@ -140,48 +138,152 @@ class Evolution:
         plt.suptitle("Max fitness vs. Generation", fontsize=18.)
         plt.show()
         
-class Evo2(Evolution):
-    """A GA class that inherits Evolution, but individuals are effectively comprised of
-    2 chromosomes
+class GA2:
+    """A genetic algorithm with two chromosome types.
     
-    Arguments:
-        isize (int): Size of the individual strings.
-        psize (int): Size of the population.
-        fitfunc (function): Fitness function; returns high values for high fitness.
-        csplit (int): Index of the beginning of the 2nd chromosome in the individual strings.
+    Parameters:
+    
+        isize1 (int):
+            Size of the first chromosome type.
+        isize2 (int):
+            Size of the second chromosome type.
+        psize (int): 
+            Size of the population.
+        fitfunc (function): 
+            Fitness function that returns high values for high fitness.  Must be callable with
+              sequences of length isize1 and isize2 as the parameters.
     
     Keywords:
-        abet (int): Size of the alphabet i.e. how many possible integers in a chromosome.
-        nepoch (int): Number of epochs in the calculation.
-        nelite (int): Number of chromosomes preserved from the previous generation during elitism.
-        tour (bool): When True, apply tournament rules."""
+    
+        ndigit1 (int):
+            Number of digits accessible chromosome type 1.  Defaults to 2 for binary strings.
+        ndigit2 (int):
+            Number of digits accessible chromosome type 2.
+        nepoch (int): 
+            Number of epochs in the algorithm.  Defaults to 100.
+        nelite (int): 
+            Number of chromosomes preserved from the previous generation during elitism.
+            Defaults to 2.
+        mrate (float):
+            Fraction of n-bits that mutate, on average.  Defaults to 'None" which means the mutation
+              rate flips one n-bit per chromosome on average."""
+    
+    def __init__(self, isize1, isize2, psize, fitfunc, 
+                 ndigit1=2, ndigit2=2, nepoch=100, nelite=2, mrate=None):
+        self.isize1 = isize1
+        self.isize2 = isize2
+        self.psize = psize
+        self.fitfunc = fitfunc
+        self.nepoch = nepoch
+        self.nelite = nelite
+        self.ndigit1 = ndigit1
+        self.ndigit2 = ndigit2
+        if psize%2 == 1:
+            psize += 1
+        self.pop1 = np.random.randint(0,ndigit1,(psize,isize1))
+        self.pop2 = np.random.randint(0,ndigit2,(psize,isize2))
+        if mrate is None:
+            self.mrate = 1/(isize1 + isize2)
+        else:
+            self.mrate = mrate
         
-    def __init__(self, isize, psize, fitfunc, csplit, abet=2, nepoch=50, nelite=3, tour=True):
-        super().__init__(isize, psize, fitfunc, abet=abet,
-                           nepoch=nepoch, nelite=nelite, tour=tour)
-        self.csplit = csplit
-      
-    def crossover(self, pop):
-        """Perform multipoint crossover on both halves of the individuals"""
+    def select_parents(self, fitness):
+        """Return the parents of the next generation
+        using fitness proportional selection."""
+        
+        #scale the fitnesses such that the highest value is the population size
+            #this guarantees there will be enough random samples
+        #ignore individuals with new fitness < 1 as parents for new generation
+        #add number of copies of the individuals based on their new fitness to be randomly selected
+        
+        fitness = fitness/np.sum(fitness)
+        fitness = self.psize*fitness/fitness.max()
+        
+        newpop1 = []
+        newpop2 = []
+        for i in range(self.psize):
+            if np.round(fitness[i]) >= 1:
+                newpop1.extend(np.kron(np.ones((np.round(fitness[i]),1)), self.pop1[i,:]))
+                newpop2.extend(np.kron(np.ones((np.round(fitness[i]),1)), self.pop2[i,:]))
+        
+        newpop1, newpop2 = np.asarray(newpop1), np.asarray(newpop2) 
+        newpop1, newpop2 = newpop1.astype(int), newpop2.astype(int)
+        
+        indices = np.arange(self.psize)
+        np.random.shuffle(indices)
+        
+        return newpop1[indices[:self.psize]], newpop2[indices[:self.psize]]
+    
+    @staticmethod
+    def crossover(pop):
+        """Return offspring of input population by
+        performing single point crossover."""
         
         newpop = np.zeros(pop.shape, dtype=int)
-        
-#        cross_point = np.random.randint(0, pop.shape[1]//2, (pop.shape[0],2))
-#        cross_point[:,1] += pop.shape[1]//2
-        cross_point = np.zeros((pop.shape[0],2), dtype=int)
-        cross_point[:,0] = np.random.randint(0, self.csplit, (pop.shape[0]))
-        cross_point[:,1] = np.random.randint(self.csplit, pop.shape[1], (pop.shape[0]))
+        cross_point = np.random.randint(0, pop.shape[1], pop.shape[0])
         
         for i in range(0, pop.shape[0], 2):
-            p1, p2 = cross_point[i]
-            newpop[i  ,   :p1] = pop[i  ,   :p1]
-            newpop[i  ,   p2:] = pop[i  ,   p2:]
-            newpop[i  , p1:p2] = pop[i+1, p1:p2]
-            newpop[i+1,   :p1] = pop[i+1,   :p1]
-            newpop[i+1,   p2:] = pop[i+1,   p2:]
-            newpop[i+1, p1:p2] = pop[i  , p1:p2]
-            
+            newpop[i  , :cross_point[i]] = pop[i  , :cross_point[i]]
+            newpop[i  , cross_point[i]:] = pop[i+1, cross_point[i]:]
+            newpop[i+1, :cross_point[i]] = pop[i+1, :cross_point[i]]
+            newpop[i+1, cross_point[i]:] = pop[i  , cross_point[i]:]
+        
         return newpop
+        
+    def mutate(self, pop1, pop2):
+        """Return mutated population."""
+        
+        whereMu1 = np.random.rand(self.psize, self.isize1)
+        whereMu2 = np.random.rand(self.psize, self.isize2)
+        muPop1, muPop2 = np.where(whereMu1 < self.mrate), np.where(whereMu2 < self.mrate)
+        pop1[muPop1] = np.random.randint(0, self.ndigit1, pop1[muPop1].shape)
+        pop2[muPop2] = np.random.randint(0, self.ndigit2, pop2[muPop2].shape)
+        return pop1, pop2
+     
+    def elitism(self, newpop1, newpop2, fitness):
+        """Return the population with random individuals replaced by the nelite
+        individuals from the previous generation."""
+        
+        best = np.argsort(fitness)
+        best1, best2 = self.pop1[best[-self.nelite:]], self.pop2[best[-self.nelite:]]
+        indices = np.arange(self.psize)
+        np.random.shuffle(indices)
+        newpop1, newpop2 = newpop1[indices], newpop2[indices]
+        newpop1[:self.nelite], newpop2[:self.nelite] = best1, best2
+        return newpop1, newpop2        
+        
+    def evolve(self):
+        """Run the genetic algorithm"""
+        
+        bestfit = np.zeros(self.nepoch)
+        
+        for i in range(self.nepoch):
+            
+            #get the fitness of the current population
+            fitness = self.fitfunc(self.pop1, self.pop2)
+            
+            #select the parents of the next generation
+            newpop1, newpop2 = self.select_parents(fitness)
+            
+            #perform crossover, mutation
+            newpop1, newpop2 = self.crossover(newpop1), self.crossover(newpop2)
+            newpop1, newpop2 = self.mutate(newpop1, newpop2)
+            
+            #apply elitism and host tournaments
+            if self.nelite > 0:
+                newpop1, newpop2 = self.elitism(newpop1, newpop2, fitness)
+                
+            self.pop1, self.pop2 = newpop1, newpop2
+            bestfit[i] = np.max(fitness)
+                    
+        print(np.concatenate((self.pop1, self.pop2), axis=1))
+        print(self.fitfunc(self.pop1, self.pop2))
+            
+        plt.plot(np.arange(1,self.nepoch+1), bestfit, '-rx', linewidth=4., markersize=15.)
+        plt.xlabel("Generation count", fontsize=15.)
+        plt.ylabel("Max fitness in population", fontsize=15.)
+        plt.suptitle("Max fitness vs. Generation", fontsize=18.)
+        plt.show()
         
 def fourpeaks(pop, T=.15):
     

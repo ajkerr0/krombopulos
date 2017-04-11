@@ -20,15 +20,16 @@ def anneal(s0, neighbor, e, n, start_temp, p="boltzmann", schedule="linear"):
             
     Keywords:
     
-        p (str):
+        p ({'boltzmann'}):
             Acceptance probability function.  Defaults to 'boltzmann'.
-        schedule (str):
+        schedule ({'linear'}):
             Annealing schedule.  Defaults to linear."""
             
     if p.lower() == "boltzmann":
         p = prob_boltzmann
     else:
         raise ValueError("Invalid acceptance probability function")
+        
     if schedule.lower() == "linear":
         schedule = sch_linear(start_temp)
     else:
