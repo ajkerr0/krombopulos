@@ -43,11 +43,11 @@ def anneal(s0, neighbor, e, n, start_temp, p="boltzmann", schedule="linear"):
     for i in range(n-1):
         
         temp = schedule(i/n)
-        s1 = neighbor(s0)
+        s1 = neighbor(np.copy(s0))
         e1 = e(s1)
         
         if e1 < ebest:
-            sbest = s1
+            sbest = np.copy(s1)
             ebest = e1
         
         if p(e0,e1,temp) + np.random.rand() >= 1.:
@@ -56,8 +56,8 @@ def anneal(s0, neighbor, e, n, start_temp, p="boltzmann", schedule="linear"):
             
         sList.append(s0)
         eList.append(e0)
-        
-    s1 = neighbor(s0)
+    
+    s1 = neighbor(np.copy(s0))
     e1 = e(s1)
     
     if e1 < ebest:
@@ -71,8 +71,10 @@ def anneal(s0, neighbor, e, n, start_temp, p="boltzmann", schedule="linear"):
     sList.append(s0)
     eList.append(e0)
         
-    print('best: {}'.format(ebest))
-    print(sbest)
+    print('best e: {}'.format(ebest))
+    print('best s: {}'.format(sbest))
+    print('final e: {}'.format(e0))
+    print('final s: {}'.format(s0))
 
     return s0,eList,np.array(sList)
             
