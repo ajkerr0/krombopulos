@@ -22,7 +22,7 @@ def anneal(s0, neighbor, e, n, start_temp, p="boltzmann", schedule="linear"):
     
         p ({'boltzmann'}):
             Acceptance probability function.  Defaults to 'boltzmann'.
-        schedule ({'linear'}):
+        schedule ({'linear', 'exponential'}):
             Annealing schedule.  Defaults to linear."""
             
     if p.lower() == "boltzmann":
@@ -32,6 +32,8 @@ def anneal(s0, neighbor, e, n, start_temp, p="boltzmann", schedule="linear"):
         
     if schedule.lower() == "linear":
         schedule = sch_linear(start_temp)
+    elif schedule.lower() == "exponential":
+        schedule = sch_exponential(start_temp)
     else:
         raise ValueError("Invalid annealing schedule")
         
@@ -76,7 +78,7 @@ def anneal(s0, neighbor, e, n, start_temp, p="boltzmann", schedule="linear"):
     print('final e: {}'.format(e0))
     print('final s: {}'.format(s0))
 
-    return s0,eList,np.array(sList)
+    return s0,eList,np.array(sList),sbest,ebest
             
 def prob_boltzmann(e0, e1, temp):
     return np.exp((e0-e1)/temp)
@@ -85,5 +87,15 @@ def sch_linear(start_temp):
     
     def schedule(ratio):
         return start_temp*(1. - ratio)
+        
+    return schedule
+    
+def sch_exponential(start_temp):
+    
+    alpha = 0.95
+    rate = 1. - alpha    
+    
+    def schedule(ratio):
+        return start_temp*np.power(rate, ratio)
         
     return schedule
