@@ -130,13 +130,52 @@ class GA1:
             bestfit[i] = np.max(fitness)
                     
         print(self.pop)
-        print(self.fitfunc(self.pop))
+        final_fitness = self.fitfunc(self.pop)
+        print(final_fitness)
+        best_index = np.argmax(final_fitness)
             
-        plt.plot(np.arange(1,self.nepoch+1), bestfit, '-rx', linewidth=4., markersize=15.)
-        plt.xlabel("Generation count", fontsize=15.)
-        plt.ylabel("Max fitness in population", fontsize=15.)
-        plt.suptitle("Max fitness vs. Generation", fontsize=18.)
-        plt.show()
+        self.best_index = best_index
+        self.bestfit = bestfit
+        self.best = self.pop[best_index]
+        
+    def plot(self, plotval, title=None, xlabel=None, ylabel=None, popfunc=None, savefile=None):
+    
+        if plotval == 0:
+            
+            if title is None:
+                title = "Maximum fitness vs. Generation count"
+            if xlabel is None:
+                xlabel = "Generation count"
+            if ylabel is None:
+                ylabel = "Max fitness in population"
+            
+            fig = plt.figure()
+            plt.plot(np.arange(1,self.bestfit.shape[0] + 1), self.bestfit, '-rx', linewidth=4., markersize=15.)
+            plt.xlabel(xlabel, fontsize=15.)
+            plt.ylabel(ylabel, fontsize=15.)
+            plt.suptitle(title, fontsize=18.)
+            plt.show()
+            
+        elif plotval == 1:
+            
+            if popfunc is None:
+                fittest = self.pop[self.best_index]
+            else:
+                fittest = popfunc(self.pop[self.best_index])
+                
+            ind = np.arange(fittest.shape[0])
+            width = .35
+            fig,ax = plt.subplots()
+            ax.bar(ind + width, fittest, width, color='r')
+            ax.set_ylabel(ylabel, fontsize=16)
+            ax.set_xlabel(xlabel, fontsize=16)
+            ax.set_title(title, fontsize=20)
+            ax.set_xticks(ind + width*1.5)
+            ax.set_yticks(np.arange(np.max(fittest)+2)+1)
+            ax.set_xticklabels(np.arange(1,fittest.shape[0]+1))
+        
+        if savefile is not None:
+            plt.savefig(savefile, bbox_inches='tight')
         
 class GA2:
     """A genetic algorithm with two chromosome types.
@@ -285,13 +324,23 @@ class GA2:
         self.bestfit = bestfit
         self.best = np.concatenate((self.pop1[best_index], self.pop2[best_index]))
         
-    def plot(self, plotval, title="", xlabel="", ylabel="", popfunc=None, savefile=None):
+    def plot(self, plotval, title=None, xlabel=None, ylabel=None, popfunc=None, savefile=None):
         
         if plotval == 0:
+            
+            if title is None:
+                title = "Maximum fitness vs. Generation count"
+            if xlabel is None:
+                xlabel = "Generation count"
+            if ylabel is None:
+                ylabel = "Max fitness in population"
+            
+            fig = plt.figure()
             plt.plot(np.arange(1,self.bestfit.shape[0] + 1), self.bestfit, '-rx', linewidth=4., markersize=15.)
             plt.xlabel(xlabel, fontsize=15.)
             plt.ylabel(ylabel, fontsize=15.)
             plt.suptitle(title, fontsize=18.)
+            plt.show()
             
         elif plotval == 1:
             
