@@ -65,10 +65,6 @@ class GA:
             self.mrate = mrate
             
     def evaluate_fitness(self):
-#        fitness = []
-#        for i in range(self.psize):
-#            fitness.append(self.fitfunc(*[x[i] for x in self.pops]))
-#        return np.asarray(fitness)
         return self.fitfunc(*[x for x in self.pops])
         
     def select_parents(self, fitness):
@@ -80,35 +76,36 @@ class GA:
         # ignore individuals with new fitness < 1 as parents for new generation
         # add number of copies of the individuals based on their new fitness to be randomly selected
         
-#        fitness = fitness/np.sum(fitness)
-#        fitness = self.psize*fitness/fitness.max()
-        
-        scaled_fitness = fitness/np.sum(fitness)
-        scaled_fitness = self.psize*scaled_fitness/scaled_fitness.max()
+        fitness = fitness/np.sum(fitness)
+        fitness = self.psize*fitness/fitness.max()
         
         newpops = [[]*self.n_chromo]
         for i in range(self.psize):
-            if np.round(scaled_fitness[i]) >= 1:
+            if np.round(fitness[i]) >= 1:
                 for count, newpop in enumerate(newpops):
-                    newpop.extend(np.kron(np.ones((np.round(scaled_fitness[i]),1)), self.pops[count][i,:]))
+                    newpop.extend(np.kron(np.ones((np.round(fitness[i]),1)), self.pops[count][i,:]))
                     
         indices = np.arange(self.psize)
         np.random.shuffle(indices)
         
+        finalpops = []
+        
         for newpop in newpops:
             # has pseduo-code gone too far??
-            newpop = np.asarray(newpop)
+            newpop = np.array(newpop)
             newpop = newpop.astype(int, copy=False)[indices[:self.psize]]
+            finalpops.append(newpop)
             
-        return newpop
-      
-    def crossover(self):
+        return finalpops
+    
+    @staticmethod
+    def crossover(pops):
         """Return offspring of input population by
         performing single point crossover."""
         
         newpops = []
         
-        for pop in self.pops:
+        for pop in pops:
         
             newpop = np.zeros(pop.shape, dtype=int)
             cross_point = np.random.randint(0, pop.shape[1], pop.shape[0])
@@ -121,31 +118,34 @@ class GA:
                 
             newpops.append(newpop)
             
-        self.pops = newpops
+        return newpops
         
-    def mutate(self):
+    def mutate(self, pops):
         """Mutate the current populations"""
         
-        for n_digit, pop in zip(self.n_digits, self.pops):
+        for n_digit, pop in zip(self.n_digits, pops):
             whereMu = np.random.rand(self.psize, pop.shape[1])
             muPop = np.where(whereMu < self.mrate)
             pop[muPop] = np.random.randint(0, n_digit, pop[muPop].shape)
             
+        return pops
             
-    def elitism(self, fitness):
+            
+    def elitism(self, pops, fitness):
         
         fitness_best = np.argsort(fitness)
         indices = np.arange(self.psize)
         np.random.shuffle(indices)
+        
+        newpops = []
 
-        for pop in self.pops:
-#            print(fitness)
-#            print(pop)
-#            print(fitness_best[-self.n_elite:])
-            pop_best = pop[fitness_best[-self.n_elite:]]
-#            print(pop_best)
-            pop = pop[indices]
-            pop[:self.n_elite] = pop_best
+        for count, pop in enumerate(pops):
+            pop_best = self.pops[count][fitness_best[-self.n_elite:]]
+            newpop = pop[indices]
+            newpop[:self.n_elite] = pop_best
+            newpops.append(newpop)
+            
+        return newpops
             
     def evolve(self):
         
@@ -157,22 +157,22 @@ class GA:
             fitness = self.evaluate_fitness()
             
             # select the parents of the next generation
-            self.select_parents(fitness)
+            newpops = self.select_parents(fitness)
             
             # perform crossover, mutation
-            self.crossover()
-            self.mutate()
+            newpops = self.crossover(newpops)
+            newpops = self.mutate(newpops)
             
             # apply elitism
             if self.n_elite > 0:
-                self.elitism(fitness)
-                
+                newpops = self.elitism(newpops, fitness)
+            
+            self.pops = newpops
             bestfit.append(np.max(fitness))
             
         print(np.concatenate([pop for pop in self.pops], axis=1))
         final_fitness = self.evaluate_fitness()
         print(final_fitness)
-        print('check')
         best_index = np.argmax(final_fitness)
         
         self.best_index= best_index
@@ -485,7 +485,7 @@ class GA2:
             newpop1, newpop2 = self.crossover(newpop1), self.crossover(newpop2)
             newpop1, newpop2 = self.mutate(newpop1, newpop2)
             
-            #apply elitism and host tournaments
+            #apply elitism
             if self.nelite > 0:
                 newpop1, newpop2 = self.elitism(newpop1, newpop2, fitness)
                 
