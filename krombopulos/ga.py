@@ -9,49 +9,58 @@ class GA:
     Parameters
     ----------
     isizes : array-like
-        Array containing the length of the chromosomes.  The shape determines the number of chromosomes.
+        Array containing the length of the chromosomes.  The shape determines 
+        the number of chromosomes.
     psize : int
         Population size
     n_digits : array-like
-        Array containing the number of allowed digits in each chromosome.  Must be shaped like isizes.
+        Array containing the number of allowed digits in each chromosome.  
+        Must be shaped like isizes.
     fitfunc : callable
-        The fitness function which must accept array-like arguments in succesion with shapes determined 
-        by isizes and outputs a scalar.  A higher output corresponds to a higher fitness.
+        The fitness function which must accept array-like arguments in 
+        succesion with shapes determined 
+        by isizes and outputs a scalar.  A higher output corresponds to 
+        a higher fitness.
         
     Keywords
     --------
     max_gen : int
-        The max number of generations that will be produced when GA.evolve is called if the stopping condition
-        is not met.  Defaults to 500.
+        The max number of generations that will be produced when GA.evolve is 
+        called if the stopping condition is not met.  Defaults to 500.
     n_elite : int
-        The elitism number.  The 'n_elite' best chromosomes in Generation N will be forced into Generation N+1, replacing
-        random children.  Defaults to 2.
+        The elitism number.  The 'n_elite' best chromosomes in Generation N 
+        will be forced into Generation N+1, replacing random children.  
+        Defaults to 2.
     w : int
-        The swing value.  The GA stops if there is no improvement in the max fitness of the pop after 'w' generations.
-        Defaults to 50.
+        The swing value.  The GA stops if there is no improvement in the max 
+        fitness of the pop after 'w' generations.  Defaults to 50.
     mrate : float
-        The probability that a given gene mutates after the mating process.  Defaults to 'None' which corresponds
-        to one gene mutating per chromosome on average.  Genes mutate to any of their allowed values (sometimes to their
-        original value)
+        The probability that a given gene mutates after the mating process.  
+        Defaults to 'None' which corresponds to one gene mutating per 
+        chromosome on average.  Genes mutate to any of their allowed values 
+        (sometimes to their original value)
         
     Methods
     -------
     evolve
-        Performs the genetic algorithm for GA.max_gen generations or until the stopping condition is met.
+        Performs the genetic algorithm for GA.max_gen generations or until the
+        stopping condition is met.
     
     """
     
     def __init__(self, isizes, psize, n_digits, fitfunc, 
                  max_gen=500, n_elite=2, w=50, mrate=None):
         if len(isizes) != len(n_digits):
-            raise ValueError("The shape of the digit array should reflect the number of\
-                             chromsomes")
+            raise ValueError("The shape of the digit array should reflect the\
+                             number of chromsomes")
         self.n_chromo = len(isizes)
         self.n_digits = n_digits
         self.fitfunc = fitfunc
         self.max_gen = max_gen
         self.n_elite = n_elite
         self.w = w
+        self._bestfit = None
+        self._stop_counter = 0
         if psize%2 == 1:
             psize += 1
         self.psize = psize
@@ -60,7 +69,7 @@ class GA:
             pops.append(np.random.randint(0, n_digit, (psize, isize)))
         self.pops = pops
         if mrate is None:
-            self.mrate = 1/np.sum(isizes)
+            self.mrate = 1./np.sum(isizes)
         else:
             self.mrate = mrate
             
@@ -74,7 +83,8 @@ class GA:
         # scale the fitnesses such that the highest value is the population size
             # this guarantees there will be enough random samples
         # ignore individuals with new fitness < 1 as parents for new generation
-        # add number of copies of the individuals based on their new fitness to be randomly selected
+        # add number of copies of the individuals based on their new fitness 
+            # to be randomly selected
         
         fitness = fitness/np.sum(fitness)
         fitness = self.psize*fitness/fitness.max()
@@ -83,7 +93,8 @@ class GA:
         for i in range(self.psize):
             if np.round(fitness[i]) >= 1:
                 for count, newpop in enumerate(newpops):
-                    newpop.extend(np.kron(np.ones((np.round(fitness[i]),1)), self.pops[count][i,:]))
+                    newpop.extend(np.kron(np.ones((np.round(fitness[i]),1)), 
+                                          self.pops[count][i,:]))
                     
         indices = np.arange(self.psize)
         np.random.shuffle(indices)
@@ -92,7 +103,7 @@ class GA:
         
         for newpop in newpops:
             # has pseduo-code gone too far??
-            newpop = np.array(newpop)
+            newpop = np.asarray(newpop)
             newpop = newpop.astype(int, copy=False)[indices[:self.psize]]
             finalpops.append(newpop)
             
@@ -149,8 +160,7 @@ class GA:
             
     def evolve(self):
         
-        bestfit = []
-        
+        bestfits = []
         for i in range(self.max_gen):
             
             # get the fitness of the current population
@@ -168,15 +178,32 @@ class GA:
                 newpops = self.elitism(newpops, fitness)
             
             self.pops = newpops
-            bestfit.append(np.max(fitness))
+            bestfit = np.max(fitness)
+            bestfits.append(bestfit)
             
-        print(np.concatenate([pop for pop in self.pops], axis=1))
+            try:
+                if bestfit > self._bestfit:
+                    self._bestfit = bestfit
+                    self._stop_counter = 0
+                else:
+                    self._stop_counter += 1
+                    
+                    if self._stop_counter >= self.w:
+                        print('Stopping condition met.')
+                        break
+            except TypeError:
+                self._bestfit = bestfit
+                self._stop_counter = 0
+        
         final_fitness = self.evaluate_fitness()
-        print(final_fitness)
+        print('Final population with fitnesses: ')
+        print(np.concatenate([pop for pop in self.pops]+
+                             [final_fitness.reshape(self.psize, 1)], 
+                              axis=1))
         best_index = np.argmax(final_fitness)
         
         self.best_index= best_index
-        self.best_fit = bestfit
+        self.best_fits = bestfits
         self.best_string = np.concatenate([pop[best_index] for pop in self.pops])
         
 class GA1:
