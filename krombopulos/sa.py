@@ -1,7 +1,8 @@
 
 import numpy as np
 
-def anneal(s0, neighbor, e, n, start_temp, p="boltzmann", schedule="linear"):
+def anneal(s0, neighbor, e, n, start_temp, 
+           ts=20, p="boltzmann", schedule="linear"):
     """Return a low energy state through simulated annealing.
     
     Parameters:
@@ -20,6 +21,9 @@ def anneal(s0, neighbor, e, n, start_temp, p="boltzmann", schedule="linear"):
             
     Keywords:
     
+        ts (int):
+            Swing value.  The annealing halts if the solution hasn't changed
+              in 'ts' iterations.  Defaults to 20.
         p ({'boltzmann'}):
             Acceptance probability function.  Defaults to 'boltzmann'.
         schedule ({'linear', 'exponential'}):
@@ -42,6 +46,8 @@ def anneal(s0, neighbor, e, n, start_temp, p="boltzmann", schedule="linear"):
     ebest = e0
     sList, eList = [s0], [e0]
     
+    stopcount = 0
+    
     for i in range(n-1):
         
         temp = schedule(i/n)
@@ -51,6 +57,16 @@ def anneal(s0, neighbor, e, n, start_temp, p="boltzmann", schedule="linear"):
         if e1 < ebest:
             sbest = np.copy(s1)
             ebest = e1
+            
+        ediff = e1 - e0
+        if np.abs(ediff) < 1e-6:
+            stopcount += 1
+            
+            if stopcount >= ts:
+                print("Stopping condition met")
+                break
+        else:
+            stopcount = 0
         
         if p(e0,e1,temp) + np.random.rand() >= 1.:
             e0 = e1
@@ -78,7 +94,7 @@ def anneal(s0, neighbor, e, n, start_temp, p="boltzmann", schedule="linear"):
     print('final e: {}'.format(e0))
     print('final s: {}'.format(s0))
 
-    return s0,eList,np.array(sList),sbest,ebest
+    return s0, np.array(eList), np.array(sList), sbest, ebest
             
 def prob_boltzmann(e0, e1, temp):
     return np.exp((e0-e1)/temp)
@@ -92,7 +108,7 @@ def sch_linear(start_temp):
     
 def sch_exponential(start_temp):
     
-    alpha = 0.95
+    alpha = 0.99
     rate = 1. - alpha    
     
     def schedule(ratio):
