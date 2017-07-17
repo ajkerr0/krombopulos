@@ -4,7 +4,9 @@ import matplotlib.pyplot as plt
 
 class GA:
     """
-    A genetic algorithm with integer genes; works for many chromosomes at once
+    A genetic algorithm with integer genes; works for many chromosomes at once.
+    Much of the code comes from Stephen Marsland 
+    (https://seat.massey.ac.nz/personal/s.r.marsland/MLBook.html)
     
     Parameters
     ----------
@@ -141,7 +143,6 @@ class GA:
             
         return pops
             
-            
     def elitism(self, pops, fitness):
         
         fitness_best = np.argsort(fitness)
@@ -189,21 +190,21 @@ class GA:
                     self._stop_counter += 1
                     
                     if self._stop_counter >= self.w:
-                        print('Stopping condition met.')
+#                        print('Stopping condition met.')
                         break
             except TypeError:
                 self._bestfit = bestfit
                 self._stop_counter = 0
         
         final_fitness = self.evaluate_fitness()
-        print('Final population with fitnesses: ')
-        print(np.concatenate([pop for pop in self.pops]+
-                             [final_fitness.reshape(self.psize, 1)], 
-                              axis=1))
+#        print('Final population with fitnesses: ')
+#        print(np.concatenate([pop for pop in self.pops]+
+#                             [final_fitness.reshape(self.psize, 1)], 
+#                              axis=1))
         best_index = np.argmax(final_fitness)
         
         self.best_index= best_index
-        self.best_fits = bestfits
+        self.best_fits = np.asarray(bestfits)
         self.best_string = np.concatenate([pop[best_index] for pop in self.pops])
         
 class GA1:
