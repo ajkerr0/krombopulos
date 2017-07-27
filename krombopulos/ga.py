@@ -203,6 +203,7 @@ class GA:
 #                              axis=1))
         best_index = np.argmax(final_fitness)
         
+        self.ngen = i
         self.best_index= best_index
         self.best_fits = np.asarray(bestfits)
         self.best_string = np.concatenate([pop[best_index] for pop in self.pops])
@@ -338,7 +339,7 @@ class GA1:
         final_fitness = self.fitfunc(self.pop)
         print(final_fitness)
         best_index = np.argmax(final_fitness)
-            
+        
         self.best_index = best_index
         self.bestfit = bestfit
         self.best = self.pop[best_index]
