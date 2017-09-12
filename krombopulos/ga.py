@@ -2,6 +2,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+import texout as to
+
 class GA:
     """
     A genetic algorithm with integer genes; works for many chromosomes at once.
@@ -51,7 +53,7 @@ class GA:
     """
     
     def __init__(self, isizes, psize, n_digits, fitfunc, 
-                 max_gen=500, n_elite=2, w=50, mrate=None):
+                 max_gen=1000, n_elite=2, w=50, mrate=None, log=None):
         if len(isizes) != len(n_digits):
             raise ValueError("The shape of the digit array should reflect the\
                              number of chromsomes")
@@ -74,6 +76,12 @@ class GA:
             self.mrate = 1./np.sum(isizes)
         else:
             self.mrate = mrate
+        
+        if log is not None:
+            self.log = True
+            self.logger = to.DataLogger(log, ['fitness', 'state'])
+        else:
+            self.log = False
             
     def evaluate_fitness(self):
         return self.fitfunc(*[x for x in self.pops])
@@ -134,7 +142,8 @@ class GA:
         return newpops
         
     def mutate(self, pops):
-        """Mutate the current populations"""
+        """Mutate the current populations.  
+        Genes are mutated to any allowed value."""
         
         for n_digit, pop in zip(self.n_digits, pops):
             whereMu = np.random.rand(self.psize, pop.shape[1])
@@ -166,6 +175,12 @@ class GA:
             
             # get the fitness of the current population
             fitness = self.evaluate_fitness()
+            
+            # write population and corresponding fitness to file
+            if self.log:
+                total_pop = np.concatenate(self.pops, axis=1)
+                for fitn, state in zip(fitness,total_pop):
+                    self.logger.write([fitn, state])        
             
             # select the parents of the next generation
             newpops = self.select_parents(fitness)
