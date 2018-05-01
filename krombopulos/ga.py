@@ -95,7 +95,7 @@ class GA:
         for i in range(self.psize):
             if np.round(fitness[i]) >= 1:
                 for count, newpop in enumerate(newpops):
-                    newpop.extend(np.kron(np.ones((np.round(fitness[i]),1)), 
+                    newpop.extend(np.kron(np.ones((np.round(fitness[i]).astype(int),1)), 
                                           self.pops[count][i,:]))
                     
         indices = np.arange(self.psize)
